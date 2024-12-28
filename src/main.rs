@@ -46,7 +46,7 @@ fn pixel(
     stream:&mut TcpStream,
     x:u16,
     y:u16,
-    px:RGB
+    px:&RGB
 ) -> std::io::Result<()> {
     let send_str = format!("PX {} {} {:02x}{:02x}{:02x}\n", x, y, px.r, px.g, px.b);
     //println!("{}", send_str);
@@ -58,17 +58,18 @@ fn show_picture(
     stream:&mut TcpStream,
     x_pos:u16,
     y_pos:u16,
-    width:u16,
-    height:u16,
-    buf:Vec<Vec<RGB>>
+    buf:&Vec<Vec<RGB>>,
+    scale:u16,
 ) -> std::io::Result<()> {
-    println!("width: {} height: {}", width, height);
-
     let mut y = 0;
     for row in buf {
         let mut x = 0;
         for px in row {
-            pixel(stream, x + x_pos, y + y_pos, px);
+            for x_i in 0..scale-1 {
+                for y_i in 0..scale-1 {
+                    pixel(stream, x_pos + x*scale + x_i, y_pos + y*scale + y_i, px);
+                }
+            }
             x += 1;
         }
         y += 1;
@@ -77,15 +78,20 @@ fn show_picture(
 }
 
 fn main() -> std::io::Result<()> {
-    let paths = fs::read_dir("./bee").unwrap();
-
-    for path in paths {
-        println!("Name: {}", path.unwrap().path().display())
-    }
-
     let mut stream = TcpStream::connect("wall.c3pixelflut.de:1337")?;
 
-    let image = get_image(&String::from("./bee/bee_00001.ppm"));
+    let mut frames : Vec<Vec<Vec<RGB>>> = Vec::new();
+    for i in 1..13721 {
+        let filename = format!("./bee/bee_{:05}.ppm", i);
+        let image = get_image(&String::from(filename));
+        frames.push(image);
+    }
+
+    while true {
+        for frame in &frames {
+            show_picture(&mut stream, 3500, 100, &frame, 4);
+        }
+    }
 
     Ok(())
 } // the stream is closed here
