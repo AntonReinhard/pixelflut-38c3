@@ -1,12 +1,10 @@
 use std::net::TcpStream;
 use std::io::*;
-use std::fs::File;
-use std::fs;
 
 extern crate tinyppm;
 
-//const X_SIZE:i32 = 3840;
-//const Y_SIZE:i32 = 1080;
+const X_SIZE:i16 = 3840;
+const Y_SIZE:i16 = 1080;
 
 #[derive(Clone)] struct RGB {
     r:u8,
@@ -28,9 +26,9 @@ fn get_image(filename: &String) -> Vec<Vec<RGB>> {
 
     for px in ppm_image.pixels() {
         frame[y][x] = RGB{
-            r: (*px >> 24u8) as u8,
-            g: (*px >> 16u8 & 0xFF) as u8,
-            b: (*px >> 8u8 & 0xFF) as u8,
+            r: (*px >> 16u8 & 0xFF) as u8,
+            g: (*px >> 8u8 & 0xFF) as u8,
+            b: (*px >> 0u8 & 0xFF) as u8,
         };
         x += 1;
         if x >= ppm_image.width() {
@@ -65,14 +63,23 @@ fn show_picture(
     for row in buf {
         let mut x = 0;
         for px in row {
-            for x_i in 0..scale-1 {
-                for y_i in 0..scale-1 {
+            for x_i in 0..scale {
+                for y_i in 0..scale {
                     pixel(stream, x_pos + x*scale + x_i, y_pos + y*scale + y_i, px);
                 }
             }
             x += 1;
         }
         y += 1;
+    }
+    Ok(())
+}
+
+fn flood_white(stream:&mut TcpStream) -> std::io::Result<()> {
+    for x in 1..X_SIZE {
+        for y in 1..Y_SIZE {
+            pixel(stream, x as u16, y as u16, &RGB{r:255, g:255, b:255})?;
+        }
     }
     Ok(())
 }
@@ -87,11 +94,20 @@ fn main() -> std::io::Result<()> {
         frames.push(image);
     }
 
-    while true {
+    //loop {
+    //    flood_white(&mut stream);
+    //}
+
+    println!("printing");
+    loop {
         for frame in &frames {
-            show_picture(&mut stream, 3500, 100, &frame, 4);
+            for _ in 1..2 {
+                show_picture(&mut stream, 700, 0, &frame, 2);
+            }
         }
     }
+
+
 
     Ok(())
 } // the stream is closed here
