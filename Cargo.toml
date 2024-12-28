@@ -1,0 +1,8 @@
+[package]
+name = "pixelflut"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+gif = "0.13.1"
+tinyppm = "0.2.0"
